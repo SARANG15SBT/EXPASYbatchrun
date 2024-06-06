@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Protein Sequence Analysis</title>
+</head>
+<body>
+    <h1>Protein Sequence Analysis</h1>
+    <p>Please select a file containing protein sequences.</p>
+    <input type="file" id="fileInput" accept=".txt, .fasta">
+    <button onclick="processSequences()">Process Sequences</button>
+    <p id="statusMessage"></p>
+
+    <script>
+        function processSequences() {
+            var fileInput = document.getElementById('fileInput');
+            var statusMessage = document.getElementById('statusMessage');
+            var file = fileInput.files[0];
+
+            if (!file) {
+                statusMessage.innerText = "No file selected. Please select a file.";
+                return;
+            }
+
+            statusMessage.innerText = "Processing...";
+
+            var reader = new FileReader();
+            reader.onload = function(event) {
+                var sequences = event.target.result.split('\n').map(function(line) {
+                    return line.trim();
+                }).filter(function(line) {
+                    return line !== '';
+                });
+
+                if (sequences.length === 0) {
+                    statusMessage.innerText = "No protein sequences found in the file.";
+                    return;
+                }
+
+                // Send sequences to server for processing
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', '/process_sequences', true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === XMLHttpRequest.DONE) {
+                        if (xhr.status === 200) {
+                            var response = JSON.parse(xhr.responseText);
+                            if (response.success) {
+                                statusMessage.innerText = "Results saved to a single .docx file.";
+                            } else {
+                                statusMessage.innerText = "An error occurred: " + response.error;
+                            }
+                        } else {
+                            statusMessage.innerText = "An error occurred. Please try again later.";
+                        }
+                    }
+                };
+                xhr.send(JSON.stringify({sequences: sequences}));
+            };
+
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+</html>
